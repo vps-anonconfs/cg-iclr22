@@ -10,31 +10,31 @@ from wilds.datasets.wilds_dataset import WILDSDataset
 from wilds.common.grouper import CombinatorialGrouper
 from wilds.common.metrics.all_metrics import Accuracy
 
-# copied this routine from: https://github.com/facebookresearch/InvariantRiskMinimization/blob/master/code/colored_mnist/main.py
-def make_environment(images, labels, fracs):
+def make_environment(images, labels, fracs, train=False):
     """
-    fracs: fraction of color correlated majority, medium and minority
-    medium corresp[onds to thr group with no spurious correlations
+    Simply converts grayscale MNIST to color and emits example, label, g triple.
+    :param fracs: sets the number of examples of each g id.
     """
+    def torch_xor(a, b):
+        return (a-b).abs() # Assumes both inputs are either 0 or 1
     idxs = np.random.permutation(np.arange(len(labels)))
     images, labels = images[idxs], labels[idxs]
-    # Assign a binary label based on the digit; flip label with probability 0.25
-    labels = (labels < 5).float()
+    labels = (labels<5).float()
     assert np.isclose(sum(fracs), 1)
     nums = [int(frac*len(images)) for frac in fracs]
+    print("Nums:", nums)
     X, Y, gs = [], [], []
     num = 0
-    for gi in range(2):
+    for gi in range(3):
         gs += [gi]*nums[gi]
         _x, _y = images[num:num+nums[gi]], labels[num:num+nums[gi]]
+        if (gi==0) and train:
+            rnd = np.random.binomial(1, p=[0.5]*len(_y))
+            _y = _y.numpy()
+            _y = torch.tensor(rnd*_y + (1-rnd)*(1-_y))
         _im = torch.stack([_x, _x, _x], dim=1)
-        if gi==0:
-            colors = _y
-        elif gi==1:
-            colors = 1-_y
-        _im[torch.arange(len(_x)), colors.long(), :, :] *= 0
         X.append(_im)
-        Y.append(_y)            
+        Y.append(_y)          
     
     X, Y = torch.cat(X, dim=0), torch.cat(Y, dim=0)
     gs = torch.tensor(gs)
@@ -44,25 +44,24 @@ def make_environment(images, labels, fracs):
       'g': gs
     }
 
-class CMNISTDDataset(WILDSDataset):
-    def __init__(self, root_dir='data', download=False, split_scheme='official', group_ratio=100):
+class NMNISTDataset(WILDSDataset):
+    def __init__(self, root_dir='data', download=False, split_scheme='official'):
         required_attrs = ['_dataset_name', '_data_dir',
                           '_split_scheme', '_split_array',
                           '_y_array', '_y_size',
                           '_metadata_fields', '_metadata_array']
 
-        self._dataset_name = "cmnist"
+        self._dataset_name = "nmnist"
         self._data_dir = os.path.join(root_dir, self._dataset_name)
         
         mnist = datasets.MNIST('~/datasets/mnist', train=True, download=True)
-        mnist_train = (mnist.data[:50000], mnist.targets[:50000])
-        mnist_val = (mnist.data[50000:], mnist.targets[50000:])
+        mnist_train = (mnist.data[:10000], mnist.targets[:10000])
+        mnist_val = (mnist.data[10000:12000], mnist.targets[10000:12000])
         mnist = datasets.MNIST('~/datasets/mnist', train=False, download=True)
         mnist_test = (mnist.data, mnist.targets)
-        p = 1./(group_ratio+1)
-        train_data = make_environment(mnist_train[0], mnist_train[1], [1-p, p])
-        val_data = make_environment(mnist_val[0], mnist_val[1], [0.5, 0.5])
-        test_data = make_environment(mnist_test[0], mnist_test[1], [0.5, 0.5])
+        train_data = make_environment(mnist_train[0], mnist_train[1], [0.49, 0.49, 0.02], train=True)
+        val_data = make_environment(mnist_val[0], mnist_val[1], [0.34, 0.33, 0.33])
+        test_data = make_environment(mnist_test[0], mnist_test[1], [0.34, 0.33, 0.33])
         
         _x_array, _y_array, _split_array, _g_array = [], [], [], []
         i = 0
@@ -91,8 +90,8 @@ class CMNISTDDataset(WILDSDataset):
         )
         self._metadata_fields = ['group', 'y']
         self._metadata_map = {
-            'group': [' majority', ' minority'], 
-            'y': [' 0', '1']
+            'group': [' grp0', ' grp1', ' grp2'], 
+            'y': ['%d' for d in range(self._n_classes)]
         }
         
         self._original_resolution = (28, 28)
@@ -111,7 +110,9 @@ class CMNISTDDataset(WILDSDataset):
         Output:
             - x (Tensor): Input features of the idx-th data point
         """
-        return Image.fromarray(self._input_array[idx]).convert('RGB')
+        gi = self._metadata_array[idx][0].item()
+        pil_img = Image.fromarray(self._input_array[idx]).convert('RGB')
+        return pil_img
         
     def eval(self, y_pred, y_true, metadata):
         return self.standard_group_eval(
@@ -120,6 +121,8 @@ class CMNISTDDataset(WILDSDataset):
             y_pred, y_true, metadata)
     
 if __name__ == '__main__':
-    dset = CMNISTDDataset('data')
+    dset = NMNISTDataset('data')
     train, val, test = dset.get_subset('train'), dset.get_subset('val'), dset.get_subset('test')
     print ("Train, val, test sizes:", len(train), len(val), len(test))
+    for _ in range(500):
+        dset.get_input(np.random.choice(len(dset)))

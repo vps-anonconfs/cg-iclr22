@@ -14,11 +14,11 @@ from wilds.common.metrics.loss import ElementwiseLoss
 
 def make_environment(num, frac, train=True):
     gs = torch.from_numpy(np.random.choice(3, p=frac, size=num))
-    DIM = 3
-    X = torch.cat([torch.randn([num, DIM-1]), torch.zeros([num, 1])], dim=1)
+    DIM = 1000
+    X = torch.cat([torch.randn([num, 2]), torch.zeros([num, DIM-2])], dim=1)
     n = num
     Y1 = (X[:, 0] > 0).type(torch.float32)
-    angle = 15*np.pi/180
+    angle = 30*np.pi/180
     Y2 = ((np.cos(angle))*X[:, 0] + (np.sin(angle))*X[:, 1] > 0).type(torch.float32)
     Y3 = ((np.cos(2*angle))*X[:, 0] + (np.sin(2*angle))*X[:, 1] > 0).type(torch.float32)
     _Y = torch.where(gs==1, Y2, Y3)
@@ -39,7 +39,7 @@ class RotSimpleDataset(WILDSDataset):
         self._dataset_name = "rot_simple"
         self._data_dir = os.path.join(root_dir, self._dataset_name)
 
-        train_data = make_environment(1000, [0.49, 0.49, 0.02], train=True)
+        train_data = make_environment(1000, [0.499, 0.499, 0.002], train=True)
         val_data = make_environment(1000, [0.34, 0.33, 0.33], train=False)
         test_data = make_environment(10000, [0.34, 0.33, 0.33], train=False)
         

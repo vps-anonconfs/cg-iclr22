@@ -55,4 +55,4 @@ In the algorithms folder, we include implementation of our method (CGD) and Ahme
 2. PGI ([ICLR 2021](https://openreview.net/forum?id=b9PoimzZFJ)): `algorithms/pgi.py`. Hyperparameter: `--pgi_penalty_weight` controls ths weight of distributional divergence discussed in their paper (lambda).
 
 ## Datasets
-Most of the datasets can be readily downloaded by passing `--download` when running `run_expt.py`. Additional datasets that are not part of WILDS are included in the datasets folder, these include Colored-MNIST (`cmnistd.py`) and datasets used for qualitative evaluation of Section 4 from our paper. 
+Most of the datasets can be readily downloaded by passing `--download` when running `run_expt.py`. Additional datasets that are not part of WILDS are included in the datasets folder, these include Colored-MNIST (`cmnist_debug_dataset.py`) and datasets used for qualitative evaluation of Section 4 from our paper. 
