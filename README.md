@@ -52,4 +52,7 @@ python run_expt.py --dataset $DATASET --algorithm $ALG --root_dir data --progres
 ## File structure
 In the algorithms folder, we include implementation of our method (CGD) and Ahmed et.al. ICLR 2021.   
 1. CGD: `algorithms/cg.py`. Hyperparameters: `--cg_step_size` set the step size parameter and `--cg_C` sets the group adjustment parameter C discussed in our paper. 
-2. PGI ([ICLR 2021](https://openreview.net/forum?id=b9PoimzZFJ)): `algorithms/pgi.py`. Hyperparameter: `--pgi_penalty_weight` controls ths weight of distributional divergence discussed in their paper (lambda). 
+2. PGI ([ICLR 2021](https://openreview.net/forum?id=b9PoimzZFJ)): `algorithms/pgi.py`. Hyperparameter: `--pgi_penalty_weight` controls ths weight of distributional divergence discussed in their paper (lambda).
+
+## Datasets
+Most of the datasets can be readily downloaded by passing `--download` when running `run_expt.py`. Additional datasets that are not part of WILDS are included in the datasets folder, these include Colored-MNIST (`cmnistd.py`) and datasets used for qualitative evaluation of Section 4 from our paper. 
